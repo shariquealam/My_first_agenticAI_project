@@ -9,22 +9,30 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 from framework.agentFactory import AgentFactory
 
 os.environ[
-    "OPENAI_API_KEY"] = "hhvjb"
+    "OPENAI_API_KEY"] = "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"
 
 
 async def main():
     model_client = OpenAIChatCompletionClient( model="gpt-4o" )
     factory = AgentFactory( model_client )
+    read_sheet_id = "d/1xCWlivIgST8-XbH3Gi3OD9HjimdSB-F_gpEnz0l4p7Y"
+    write_sheet_id = "d/1AXPYRnZoQX0HCKx92eOgI6bdIO0M6b7JD4nUHadctZc"
 
-    google_sheet_read_agent = factory.google_sheet_agent("""
+
+    google_sheet_agent = factory.create_google_sheet_agent(system_message="You are a Google Sheets agent. You can read and write data to spreadsheets.")
+
+
+    # Example read
+    google_read_sheet_agent = google_sheet_agent.step(f"""
         You are an google Sheet Reader.
 
         Your task:
-        1. Open google sheet, sheet_id = d/1xCWlivIgST8-XbH3Gi3OD9HjimdSB-F_gpEnz0l4p7Y.
+        1. Open google sheet, sheet_id = {read_sheet_id}
         2. Extract all the test cases.
         3. Pass these test cases to the playwrite agent for execution.
         When ready, write: "TEST_DATA_READY", Playwrite Agent should proceed next"
-    """, "d/1xCWlivIgST8-XbH3Gi3OD9HjimdSB-F_gpEnz0l4p7Y")
+    """)
+
 
 
     playwrite_agent = factory.create_playwrite_agent(system_message=("""
@@ -37,17 +45,21 @@ async def main():
                 Google Sheet Write Agent should proceed next"
                 """))
 
-    google_sheet_write_agent = factory.google_sheet_agent("""
+
+
+
+    google_write_sheet_agent = google_sheet_agent.step(f"""
             You are an google Sheet writer.
 
             Your task:
             1. Wait for Playwrite Agent to complete with "EXECUTION_COMPLETED" message.
-            2. Create a google sheet adding the test execution result.
-        """, "d/1AXPYRnZoQX0HCKx92eOgI6bdIO0M6b7JD4nUHadctZc")
+            2. Write the test execution result in the sheetID = {write_sheet_id}
+            2. Create a google sheet adding the test execution result in the given Sheet ID.
+        """)
 
 
 
-    team = RoundRobinGroupChat( participants=[google_sheet_read_agent, playwrite_agent, google_sheet_write_agent],
+    team = RoundRobinGroupChat( participants=[google_read_sheet_agent, playwrite_agent, google_write_sheet_agent],
                                 termination_condition=TextMentionTermination( "REGISTRATION PROCESS COMPLETE" ) )
 
     task_result = await Console( team.run_stream( task="Execute Sequential Google search Process:\n\n"

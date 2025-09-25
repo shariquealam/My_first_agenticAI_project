@@ -1,5 +1,6 @@
 from autogen_ext.tools.mcp import StdioServerParams, McpWorkbench
 
+from googleOperation import read_sheet, write_sheet
 
 class McpConfig:
 
@@ -70,3 +71,29 @@ class McpConfig:
             read_timeout_seconds=60
         )
         return McpWorkbench( server_params=filesystem_server_params )
+
+
+    @staticmethod
+    def get_google_sheet_workbench():
+        """Get Filesystem MCP workbench instance"""
+        filesystem_server_params = StdioServerParams(
+            command="npx",
+            args=["-y", "google-sheets-mcp"]
+        )
+        return McpWorkbench(server_params=filesystem_server_params)
+
+
+    # @staticmethod
+    # def get_google_sheet_workbench(sheet_id):
+    #     return [
+    #         Tool(
+    #             name="read_sheet",
+    #             func=lambda range_name: read_sheet(sheet_id, range_name),
+    #             description="Read values from the given sheet range"
+    #         ),
+    #         Tool(
+    #             name="write_sheet",
+    #             func=lambda range_name, values: write_sheet(sheet_id, range_name, values),
+    #             description="Write values to the given sheet range"
+    #         )
+    #     ]
